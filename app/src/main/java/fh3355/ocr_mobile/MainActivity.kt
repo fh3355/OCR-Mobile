@@ -3,10 +3,15 @@ package fh3355.ocr_mobile
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -23,6 +28,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -37,21 +44,41 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen() {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val ocrProcessor = remember { OcrProcessor() }
 
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var recognizedText by remember { mutableStateOf("Text will be displayed here.") }
+
+    // Initialize Tesseract in a side effect
+    LaunchedEffect(Unit) {
+        coroutineScope.launch(Dispatchers.IO) {
+            ocrProcessor.initTesseract(context, "eng")
+        }
+    }
+
+    // Release Tesseract when the composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            ocrProcessor.release()
+        }
+    }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
             imageUri = uri
             uri?.let {
-                ocrProcessor.processImage(context, it, {
-                    text -> recognizedText = text
-                }, {
-                    e -> recognizedText = "Error: ${e.message}"
-                })
+                coroutineScope.launch(Dispatchers.Default) {
+                    try {
+                        val bitmap = uriToBitmap(context, it)
+                        val text = ocrProcessor.processImage(bitmap)
+                        recognizedText = text.ifBlank { "No text found." }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        recognizedText = "Error processing image."
+                    }
+                }
             }
         }
     )
@@ -59,15 +86,20 @@ fun MainScreen() {
     val tempImageUri = remember { getTempUri(context) }
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
-        onResult = { success ->
+        onResult = { success: Boolean ->
             if (success) {
                 imageUri = tempImageUri
                 imageUri?.let {
-                    ocrProcessor.processImage(context, it, {
-                        text -> recognizedText = text
-                    }, {
-                        e -> recognizedText = "Error: ${e.message}"
-                    })
+                     coroutineScope.launch(Dispatchers.Default) {
+                        try {
+                            val bitmap = uriToBitmap(context, it)
+                            val text = ocrProcessor.processImage(bitmap)
+                            recognizedText = text.ifBlank { "No text found." }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            recognizedText = "Error processing image."
+                        }
+                    }
                 }
             }
         }
@@ -75,7 +107,7 @@ fun MainScreen() {
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    ) { isGranted: Boolean ->
         if (isGranted) {
             cameraLauncher.launch(tempImageUri)
         } else {
@@ -84,7 +116,9 @@ fun MainScreen() {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -108,7 +142,9 @@ fun MainScreen() {
             Image(
                 painter = rememberAsyncImagePainter(it),
                 contentDescription = "Selected Image",
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
                 contentScale = ContentScale.Fit
             )
         }
@@ -126,4 +162,15 @@ private fun getTempUri(context: Context): Uri {
         "${context.packageName}.provider",
         tempFile
     )
+}
+
+// Helper function to convert Uri to Bitmap
+private fun uriToBitmap(context: Context, uri: Uri): Bitmap {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        val source = ImageDecoder.createSource(context.contentResolver, uri)
+        ImageDecoder.decodeBitmap(source)
+    } else {
+        @Suppress("DEPRECATION")
+        MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+    }.copy(Bitmap.Config.ARGB_8888, true)
 }

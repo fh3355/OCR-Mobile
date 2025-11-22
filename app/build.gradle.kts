@@ -39,11 +39,42 @@ android {
     buildFeatures {
         compose = true
     }
+    packagingOptions {
+        exclude("lib/arm64-v8a/libjpgt.so")
+        exclude("lib/arm64-v8a/liblept.so")
+        exclude("lib/arm64-v8a/libpngt.so")
+        exclude("lib/arm64-v8a/libtess.so")
+        exclude("lib/arm64-v8a/libwebp.so")
+        exclude("lib/armeabi/libjpgt.so")
+        exclude("lib/armeabi/liblept.so")
+        exclude("lib/armeabi/libpngt.so")
+        exclude("lib/armeabi/libtess.so")
+        exclude("lib/armeabi/libwebp.so")
+        exclude("lib/mips/libjpgt.so")
+        exclude("lib/mips/liblept.so")
+        exclude("lib/mips/libpngt.so")
+        exclude("lib/mips/libtess.so")
+        exclude("lib/mips/libwebp.so")
+        exclude("lib/mips64/libjpgt.so")
+        exclude("lib/mips64/liblept.so")
+        exclude("lib/mips64/libpngt.so")
+        exclude("lib/mips64/libtess.so")
+        exclude("lib/mips64/libwebp.so")
+        exclude("lib/x86/libjpgt.so")
+        exclude("lib/x86/liblept.so")
+        exclude("lib/x86/libpngt.so")
+        exclude("lib/x86/libtess.so")
+        exclude("lib/x86/libwebp.so")
+        exclude("lib/x86_64/libjpgt.so")
+        exclude("lib/x86_64/liblept.so")
+        exclude("lib/x86_64/libpngt.so")
+        exclude("lib/x86_64/libtess.so")
+        exclude("lib/x86_64/libwebp.so")
+    }
 }
 
 dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("androidx.camera:camera-core:1.5.1")
     implementation("androidx.camera:camera-camera2:1.5.1")
     implementation("androidx.camera:camera-lifecycle:1.5.1")
@@ -56,6 +87,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("com.rmtheis:tess-two:9.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

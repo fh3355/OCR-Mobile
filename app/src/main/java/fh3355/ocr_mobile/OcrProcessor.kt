@@ -1,36 +1,47 @@
 package fh3355.ocr_mobile
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
-import android.util.Log
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.googlecode.tesseract.android.TessBaseAPI
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 class OcrProcessor {
 
-    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val tessBaseApi: TessBaseAPI = TessBaseAPI()
 
-    fun processImage(
-        context: Context,
-        imageUri: Uri,
-        onSuccess: (String) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        try {
-            val image = InputImage.fromFilePath(context, imageUri)
-            recognizer.process(image)
-                .addOnSuccessListener { visionText ->
-                    onSuccess(visionText.text)
-                }
-                .addOnFailureListener { e ->
-                    Log.e("OcrProcessor", "Text recognition failed", e)
-                    onFailure(e)
-                }
-        } catch (e: IOException) {
-            Log.e("OcrProcessor", "Failed to create InputImage from URI", e)
-            onFailure(e)
+    fun initTesseract(context: Context, lang: String) {
+        val dataPath = File(context.filesDir, "tesseract").absolutePath
+        val tessdataDir = File(dataPath, "tessdata")
+        if (!tessdataDir.exists()) {
+            tessdataDir.mkdirs()
         }
+
+        val trainedDataPath = File(tessdataDir, "$lang.traineddata")
+        if (!trainedDataPath.exists()) {
+            try {
+                context.assets.open("tessdata/$lang.traineddata").use { inputStream ->
+                    FileOutputStream(trainedDataPath).use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+        tessBaseApi.init(dataPath, lang)
+    }
+
+    fun processImage(bitmap: Bitmap): String {
+        tessBaseApi.setImage(bitmap)
+        val recognizedText = tessBaseApi.utF8Text
+        tessBaseApi.clear()
+        return recognizedText
+    }
+
+    fun release() {
+        tessBaseApi.end()
     }
 }
