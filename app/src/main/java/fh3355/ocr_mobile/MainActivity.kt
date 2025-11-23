@@ -69,6 +69,7 @@ fun MainScreen() {
     var isInitializing by remember { mutableStateOf(true) }
     var isProcessing by remember { mutableStateOf(false) }
     var isActualResult by remember { mutableStateOf(false) }
+    var processingTime by remember { mutableStateOf<Long?>(null) }
 
     // Initialize Tesseract in a side effect
     LaunchedEffect(Unit) {
@@ -87,10 +88,12 @@ fun MainScreen() {
         coroutineScope.launch(Dispatchers.Default) {
             isProcessing = true
             isActualResult = false
+            processingTime = null
             try {
                 val bitmap = uriToBitmap(context, uri)
-                val text = ocrProcessor.processImage(bitmap)
+                val (text, duration) = ocrProcessor.processImage(bitmap)
                 recognizedText = text.ifBlank { "No text found." }
+                processingTime = duration
             } catch (e: Exception) {
                 e.printStackTrace()
                 recognizedText = "Error processing image."
@@ -118,6 +121,7 @@ fun MainScreen() {
                 imageUri = it
                 recognizedText = "Image selected. Crop the image or start recognition."
                 isActualResult = false
+                processingTime = null
             }
         }
     )
@@ -131,6 +135,7 @@ fun MainScreen() {
                     imageUri = it
                     recognizedText = "Image captured. Crop the image or start recognition."
                     isActualResult = false
+                    processingTime = null
                 }
             }
         }
@@ -246,7 +251,10 @@ fun MainScreen() {
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                processingTime?.let {
+                    Text("识别用时: $it ms", fontSize = 12.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

@@ -60,13 +60,20 @@ class OcrProcessor {
         }
     }
 
-    fun processImage(bitmap: Bitmap): String {
-        val api = tessBaseApi ?: return "Error: Tesseract not initialized."
+    // Returns a pair of the recognized text and the processing time in milliseconds.
+    fun processImage(bitmap: Bitmap): Pair<String, Long> {
+        val api = tessBaseApi ?: return Pair("Error: Tesseract not initialized.", 0L)
+
+        val startTime = System.currentTimeMillis()
 
         api.setImage(bitmap)
         val recognizedText = api.utF8Text
         api.clear()
-        return recognizedText
+
+        val endTime = System.currentTimeMillis()
+        val duration = endTime - startTime
+
+        return Pair(recognizedText, duration)
     }
 
     fun release() {
