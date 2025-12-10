@@ -1,33 +1,40 @@
-# For more information about using CMake with Android Studio, read the
-# documentation: https://d.android.com/studio/projects/add-native-code.html
-
 # Sets the minimum version of CMake required to build the native library.
+# Using a more modern version is good practice.
+cmake_minimum_required(VERSION 3.18.1)
 
-cmake_minimum_required(VERSION 3.4.1)
+# --- Defining Project and C++ Standard ---
+# It's best practice to set the project name and the C++ standard.
+# C++17 is a good, modern standard for NDK development.
+project(ocr_mobile_native CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Creates and names a library, sets it as either STATIC or SHARED, and provides
-# the relative paths to its source code. You can define multiple libraries, and
-# CMake builds them for you. Gradle automatically packages shared libraries with
-# your APK.
 
-# To simplify the project structure, we assume PaddleLite and OpenCV directories
-# will be placed in the project's root `libs` folder.
-set(PaddleLite_DIR "${CMAKE_SOURCE_DIR}/../../../../libs/PaddleLite")
-include_directories(${PaddleLite_DIR}/cxx/include)
+# --- Find Prebuilt Dependencies (PaddleLite and OpenCV) ---
 
-set(OpenCV_DIR "${CMAKE_SOURCE_DIR}/../../../../libs/OpenCV/sdk/native/jni")
+# Find PaddleLite
+# The path is set relative to this CMakeLists.txt file.
+set(PADDLELITE_DIR ${CMAKE_SOURCE_DIR}/../../../../libs/PaddleLite)
+include_directories(${PADDLELITE_DIR}/cxx/include)
+add_library(paddle_light_api_shared SHARED IMPORTED)
+set_target_properties(paddle_light_api_shared PROPERTIES
+    IMPORTED_LOCATION ${PADDLELITE_DIR}/cxx/libs/${ANDROID_ABI}/libpaddle_light_api_shared.so)
+
+# Find OpenCV
+# Using the modern find_package method is more robust.
+set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/../../../../libs/OpenCV/sdk/native/jni)
 find_package(OpenCV REQUIRED)
-message(STATUS "OpenCV libraries: ${OpenCV_LIBS}")
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -ffast-math -Ofast -Os -DNDEBUG -fno-exceptions -fomit-frame-pointer -fno-asynchronous-unwind-tables -fno-unwind-tables"
-)
-set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden -fdata-sections -ffunction-sections -fexceptions"
-)
-set(CMAKE_SHARED_LINKER_FLAGS
-    "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,-z,nocopyreloc -Wl,--allow-multiple-definition")
+# --- NOTE on Compiler Flags ---
+# All custom, aggressive, and conflicting CMAKE_CXX_FLAGS have been REMOVED.
+# We will let the Android Gradle Plugin apply the default, safe, and optimized
+# flags for the selected build type (Debug/Release). This is the standard and
+# most stable approach, avoiding issues like stack overflows and floating-point
+# inaccuracies from -Ofast and -ffast-math.
+
+
+# --- Defining Our Native Library ---
 
 add_library(
   # Sets the name of the library.
@@ -35,42 +42,32 @@ add_library(
   # Sets the library as a shared library.
   SHARED
   # Provides a relative path to your source file(s).
-  Native.cc pipeline.cc utils.cc cls_process.cc rec_process.cc det_process.cc db_post_process.cc clipper.cpp)
-
-find_library(
-  # Sets the name of the path variable.
-  log-lib
-  # Specifies the name of the NDK library that you want CMake to locate.
-  log)
-
-add_library(
-  # Sets the name of the library.
-  paddle_light_api_shared
-  # Sets the library as a shared library.
-  SHARED
-  # Provides a relative path to your source file(s).
-  IMPORTED)
-
-set_target_properties(
-  # Specifies the target library.
-  paddle_light_api_shared
-  # Specifies the parameter you want to define.
-  PROPERTIES
-    IMPORTED_LOCATION
-    ${PaddleLite_DIR}/cxx/libs/${ANDROID_ABI}/libpaddle_light_api_shared.so
-    # Provides the path to the library you want to import.
+  Native.cc
+  pipeline.cc
+  utils.cc
+  cls_process.cc
+  rec_process.cc
+  det_process.cc
+  db_post_process.cc
+  clipper.cpp
 )
 
-# Specifies libraries CMake should link to your target library. You can link
-# multiple libraries, such as libraries you define in this build script,
-# prebuilt third-party libraries, or system libraries.
+# --- Linking Dependencies ---
 
+# Find standard Android libraries
+find_library(log-lib log)
+find_library(jnigraphics-lib jnigraphics)
+
+# Link all required libraries to our native library.
 target_link_libraries(
-  # Specifies the target library.
   Native
+  # Our prebuilt dependencies
   paddle_light_api_shared
   ${OpenCV_LIBS}
+  
+  # Standard Android libraries
   GLESv2
   EGL
-  jnigraphics
-  ${log-lib})
+  ${log-lib}
+  ${jnigraphics-lib}
+)
