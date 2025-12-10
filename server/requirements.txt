@@ -1,0 +1,8 @@
+# This file lists the required Python packages for the OCR server.
+# paddlepaddle is installed separately in the Dockerfile for CPU compatibility.
+
+flask
+paddleocr==2.7.0.3
+opencv-python
+numpy<2.0
+protobuf<4.0
