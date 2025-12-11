@@ -82,7 +82,6 @@ fun MainScreen() {
     LaunchedEffect(selectedMode) {
         recognizedText = "Select image and start recognition."
         isActualResult = false
-        // FIX: Replaced complex syntax with simple assignments for better compiler compatibility.
         totalTime = null
         localPreprocessingTime = null
         networkTime = null
@@ -101,7 +100,6 @@ fun MainScreen() {
         coroutineScope.launch(Dispatchers.Default) {
             isProcessing = true
             isActualResult = false
-            // FIX: Replaced complex syntax with simple assignments.
             totalTime = null
             localPreprocessingTime = null
             networkTime = null
