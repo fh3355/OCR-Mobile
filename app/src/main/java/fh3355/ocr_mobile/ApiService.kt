@@ -3,6 +3,7 @@ package fh3355.ocr_mobile
 import com.google.gson.annotations.SerializedName
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -32,13 +33,15 @@ interface ApiService {
     @Multipart
     @POST("/ocr/full")
     suspend fun ocrFullPipeline(
-        @Part file: MultipartBody.Part
+        @Part file: MultipartBody.Part,
+        @Part("model_version") modelVersion: RequestBody
     ): OcrFullResponse
 
     @Multipart
     @POST("/ocr/infer_only")
     suspend fun ocrInferenceOnly(
-        @Part file: MultipartBody.Part
+        @Part file: MultipartBody.Part,
+        @Part("model_version") modelVersion: RequestBody
     ): OcrInferOnlyResponse
 
 }
