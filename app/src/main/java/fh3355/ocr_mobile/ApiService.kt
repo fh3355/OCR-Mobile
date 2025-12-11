@@ -49,10 +49,9 @@ interface ApiService {
 // --- Singleton object to get Retrofit instance ---
 
 object RetrofitClient {
-    // ================== IMPORTANT ==================
-    // The BASE_URL must end with a forward slash (/).
-    private const val BASE_URL = "http://8.148.195.180:5000/"
-    // =============================================
+    // The BASE_URL is now dynamically provided by Gradle via BuildConfig.
+    // This keeps the URL out of version control and allows for easy environment switching.
+    private const val BASE_URL = BuildConfig.BASE_URL
 
     // Create a logging interceptor
     private val loggingInterceptor = HttpLoggingInterceptor().apply {

@@ -1,7 +1,17 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+}
+
+// Load properties from local.properties file
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 android {
@@ -28,6 +38,11 @@ android {
         }
     }
 
+    buildFeatures {
+        compose = true
+        buildConfig = true // Enable BuildConfig generation
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -35,17 +50,21 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Define BASE_URL for release build
+            buildConfigField("String", "BASE_URL", localProperties.getProperty("PROD_API_URL", "\"http://your.production.url/\""))
+        }
+        debug {
+            // Define BASE_URL for debug build from local.properties
+            buildConfigField("String", "BASE_URL", localProperties.getProperty("DEV_API_URL", "\"http://10.0.2.2:5000/\""))
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
         jvmTarget = "11"
-    }
-    buildFeatures {
-        compose = true
     }
 
     sourceSets {
@@ -71,13 +90,10 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.5.1")
     implementation("androidx.camera:camera-view:1.5.1")
     implementation("com.vanniktech:android-image-cropper:4.5.0")
-    // Tesseract removed
-    // implementation("com.rmtheis:tess-two:9.1.0")
 
-    // Retrofit for networking
+    // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    // Logging interceptor for OkHttp
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     implementation(libs.androidx.core.ktx)
